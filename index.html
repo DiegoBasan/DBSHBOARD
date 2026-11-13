@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DBSHBOARD</title>
+  <meta name="theme-color" content="#0e1116">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gastos">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Estado de gastos</p>
+      <div class="month-nav">
+        <button class="icon-btn" id="prev" aria-label="Mes anterior">‹</button>
+        <h1 id="month-label">—</h1>
+        <button class="icon-btn" id="next" aria-label="Mes siguiente">›</button>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="refresh" aria-label="Actualizar">↻</button>
+      <button class="icon-btn" id="open-settings" aria-label="Ajustes">⚙︎</button>
+    </div>
+  </header>
+
+  <p class="banner" id="banner" hidden></p>
+
+  <main>
+    <section class="kpis">
+      <article class="kpi">
+        <span>Gastos</span>
+        <strong id="k-gastos" class="neg">$0</strong>
+      </article>
+      <article class="kpi">
+        <span>Ingresos</span>
+        <strong id="k-ingresos" class="pos">$0</strong>
+      </article>
+      <article class="kpi wide">
+        <span>Balance del mes</span>
+        <strong id="k-balance">$0</strong>
+        <small id="k-sub"></small>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Por categoría</h2>
+      <ul id="cats" class="cats"></ul>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Movimientos</h2>
+        <div class="seg" role="tablist">
+          <button data-f="todos" class="on">Todos</button>
+          <button data-f="gasto">Gastos</button>
+          <button data-f="ingreso">Ingresos</button>
+        </div>
+      </div>
+      <ul id="list" class="list"></ul>
+    </section>
+  </main>
+
+  <button class="fab" id="open-add" aria-label="Agregar movimiento">+</button>
+
+  <!-- Agregar -->
+  <dialog id="add-dlg">
+    <form method="dialog" id="add-form">
+      <h3>Nuevo movimiento</h3>
+      <div class="seg full">
+        <label><input type="radio" name="tipo" value="gasto" checked><span>Gasto</span></label>
+        <label><input type="radio" name="tipo" value="ingreso"><span>Ingreso</span></label>
+      </div>
+      <label class="field">Monto<input name="monto" inputmode="decimal" required placeholder="0.00"></label>
+      <label class="field">Concepto<input name="concepto" placeholder="OXXO, renta, sueldo…"></label>
+      <label class="field">Categoría
+        <select name="categoria">
+          <option>Comida</option><option>Super</option><option>Transporte</option>
+          <option>Servicios</option><option>Suscripciones</option><option>Compras</option>
+          <option>Salud</option><option>Transferencias</option><option>Ingresos</option>
+          <option selected>Otros</option>
+        </select>
+      </label>
+      <label class="field">Fecha<input name="fecha" type="date"></label>
+      <div class="row">
+        <button value="cancel" formnovalidate class="ghost">Cancelar</button>
+        <button value="ok" class="primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Ajustes -->
+  <dialog id="settings-dlg">
+    <form method="dialog" id="settings-form">
+      <h3>Conexión</h3>
+      <p class="hint">Pega la URL de tu Web App de Apps Script y el token. Se guardan solo en este dispositivo.</p>
+      <label class="field">URL del backend<input name="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <label class="field">Token<input name="token" autocomplete="off"></label>
+      <div class="row">
+        <button value="demo" formnovalidate class="ghost">Usar demo</button>
+        <button value="ok" class="primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
