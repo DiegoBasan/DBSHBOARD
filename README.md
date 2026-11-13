@@ -40,6 +40,8 @@ curl -L -X POST "TU_URL_EXEC" -H "Content-Type: text/plain" -d '{"token":"TU_TOK
 
 Sin configurar, la app muestra datos de demo.
 
+**Temas:** el botón ◐ alterna *sistema → claro → oscuro* (oscuro en escala de grises). En pantallas ≥ 960 px se activa el modo escritorio: KPIs en fila, gráfica de gasto diario, categorías y movimientos lado a lado.
+
 ## 3. Atajo de iOS (automatización por notificación)
 
 **Atajos → Automatización → + → Notificación**

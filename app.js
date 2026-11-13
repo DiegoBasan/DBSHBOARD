@@ -72,14 +72,29 @@ function render() {
   const nG = delMes.filter((i) => i.tipo === 'gasto').length;
   $('#k-sub').textContent = `${delMes.length} movimientos · gasto promedio ${mxn.format(nG ? gastos / nG : 0)}`;
 
+  // Gasto diario
+  const dias = new Date(y, m + 1, 0).getDate();
+  const hoy = new Date();
+  const esMesActual = hoy.getFullYear() === y && hoy.getMonth() === m;
+  const diasTranscurridos = esMesActual ? hoy.getDate() : dias;
+  const porDia = Array(dias).fill(0);
+  delMes.filter((i) => i.tipo === 'gasto').forEach((i) => { porDia[i.d.getDate() - 1] += i.monto; });
+  const maxDia = Math.max(...porDia, 1);
+  $('#chart').innerHTML = porDia.map((v, i) =>
+    `<div class="b${v ? ' has' : ''}${esMesActual && i + 1 === hoy.getDate() ? ' today' : ''}" style="height:${(v / maxDia) * 100}%" title="${i + 1}: ${mxn.format(v)}"></div>`).join('');
+  $('#chart-axis').innerHTML = [1, Math.ceil(dias / 2), dias].map((d) => `<span>${d}</span>`).join('');
+  $('#daily-max').textContent = gastos ? `máx. ${mxn.format(maxDia)}` : '';
+  $('#k-diario').textContent = mxn.format(gastos / diasTranscurridos);
+
   // Categorías (solo gastos)
   const porCat = {};
   delMes.filter((i) => i.tipo === 'gasto').forEach((i) => { porCat[i.categoria] = (porCat[i.categoria] || 0) + i.monto; });
   const cats = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
   const max = cats[0]?.[1] || 1;
+  $('#k-top').textContent = cats.length ? `Mayor categoría: ${cats[0][0]}` : '';
   $('#cats').innerHTML = cats.length
     ? cats.map(([c, v]) => `
-        <li><span>${esc(c)}</span><span class="amt">${mxn.format(v)} <small style="color:var(--muted)">${Math.round(v / gastos * 100)}%</small></span>
+        <li><span>${esc(c)}</span><span class="amt">${mxn.format(v)} <span class="pct">${Math.round(v / gastos * 100)}%</span></span>
         <div class="track"><div class="fill" style="width:${(v / max) * 100}%"></div></div></li>`).join('')
     : '<li class="empty">Sin gastos este mes.</li>';
 
@@ -123,6 +138,29 @@ $('#list').onclick = async (e) => {
   else alert(res.error);
 };
 
+// Tema: sistema -> claro -> oscuro
+const THEME_KEY = 'dbsh.theme';
+const ICONS = {
+  auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>',
+  light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+};
+const LABELS = { auto: 'Tema: sistema', light: 'Tema: claro', dark: 'Tema: oscuro' };
+function applyTheme(t) {
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+  $('#theme').innerHTML = ICONS[t] || ICONS.auto;
+  $('#theme').title = LABELS[t] || LABELS.auto;
+}
+let theme = (() => { try { return localStorage.getItem(THEME_KEY) || 'auto'; } catch { return 'auto'; } })();
+applyTheme(theme);
+$('#theme').onclick = () => {
+  theme = { auto: 'light', light: 'dark', dark: 'auto' }[theme] || 'auto';
+  try { localStorage.setItem(THEME_KEY, theme); } catch {}
+  applyTheme(theme);
+};
+
+$('#open-add-top').onclick = () => $('#open-add').onclick();
 $('#open-add').onclick = () => {
   $('#add-form').reset();
   $('#add-form').fecha.value = new Date().toLocaleDateString('en-CA');
