@@ -1,7 +1,7 @@
 // Service worker mínimo: guarda la "cáscara" de la app para que abra rápido y sin red.
 // Los datos siempre se piden en vivo al backend (no se cachean aquí).
-const CACHE = 'dbsh-v3';
-const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png'];
+const CACHE = 'dbsh-v4';
+const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'importers.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -20,4 +20,30 @@ self.addEventListener('fetch', (e) => {
       .then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); return r; })
       .catch(() => caches.match(e.request))
   );
+});
+
+// ---------- Notificaciones push (las manda la función de Netlify) ----------
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { title: 'DBSHBOARD', body: e.data && e.data.text() }; }
+  e.waitUntil((async () => {
+    await self.registration.showNotification(d.title || 'Nuevo movimiento', {
+      body: d.body || '',
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: 'mov-' + Date.now(),
+      data: { url: d.url || './' },
+    });
+    // Si la app está abierta, que se actualice sola
+    (await self.clients.matchAll({ type: 'window' })).forEach((c) => c.postMessage('refresh'));
+  })());
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    if (wins.length) { wins[0].postMessage('refresh'); return wins[0].focus(); }
+    return self.clients.openWindow(self.registration.scope);
+  })());
 });

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>DBSHBOARD</title>
-  <meta name="theme-color" content="#f2f2f2" media="(prefers-color-scheme: light)">
+  <title>Mis Finanzas</title>
+  <meta name="theme-color" content="#f2f2f4" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
   <script>try{var t=localStorage.getItem("dbsh.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,6 +15,9 @@
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -22,15 +25,16 @@
     <div class="brand">
       <img class="logo" src="icons/icon.svg" alt="">
       <div>
-      <p class="eyebrow">Estado de gastos</p>
-      <div class="month-nav">
-        <button class="icon-btn" id="prev" aria-label="Mes anterior">‹</button>
-        <h1 id="month-label">—</h1>
-        <button class="icon-btn" id="next" aria-label="Mes siguiente">›</button>
-      </div>
+        <p class="eyebrow">Mis Finanzas</p>
+        <div class="month-nav">
+          <button class="icon-btn" id="prev" aria-label="Mes anterior">‹</button>
+          <h1 id="month-label">—</h1>
+          <button class="icon-btn" id="next" aria-label="Mes siguiente">›</button>
+        </div>
       </div>
     </div>
     <div class="top-actions">
+      <button class="icon-btn" id="priv" aria-label="Ocultar cantidades" title="Ocultar cantidades"></button>
       <button class="icon-btn" id="theme" aria-label="Cambiar tema" title="Tema"></button>
       <button class="icon-btn" id="refresh" aria-label="Actualizar" title="Actualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
       <button class="icon-btn" id="open-settings" aria-label="Ajustes" title="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -38,90 +42,158 @@
     </div>
   </header>
 
+  <nav class="tabs" role="tablist">
+    <button data-tab="inicio" role="tab">Inicio</button>
+    <button data-tab="tarjetas" role="tab">Tarjetas</button>
+    <button data-tab="apartados" role="tab">Apartados</button>
+    <button data-tab="analisis" role="tab">Análisis</button>
+  </nav>
+
   <p class="banner" id="banner" hidden></p>
 
   <main>
-    <section class="wallet-wrap" id="wallet-wrap">
+    <!-- Inicio -->
+    <section class="view" id="v-inicio">
+      <div class="hero" id="hero"></div>
       <div class="wallet" id="wallet"></div>
-      <p class="wallet-label" id="wallet-label"></p>
-    </section>
-
-    <section class="kpis">
-      <article class="kpi">
-        <span>Gastos</span>
-        <strong id="k-gastos" class="neg">$0</strong>
-      </article>
-      <article class="kpi">
-        <span>Ingresos</span>
-        <strong id="k-ingresos" class="pos">$0</strong>
-      </article>
-      <article class="kpi wide">
-        <span>Balance del mes</span>
-        <strong id="k-balance">$0</strong>
-        <small id="k-sub"></small>
-      </article>
-      <article class="kpi extra">
-        <span>Promedio diario de gasto</span>
-        <strong id="k-diario">$0</strong>
-        <small id="k-top"></small>
-      </article>
-    </section>
-
-    <section class="card" id="daily">
-      <div class="card-head"><h2>Gasto diario</h2><small id="daily-max"></small></div>
-      <div class="chart" id="chart"></div>
-      <div class="chart-axis" id="chart-axis"></div>
-    </section>
-
-    <section class="card" id="cats-card">
-      <h2>Por categoría</h2>
-      <ul id="cats" class="cats"></ul>
-    </section>
-
-    <section class="card" id="list-card">
-      <div class="card-head">
-        <h2>Movimientos</h2>
-        <div class="seg" role="tablist">
-          <button data-f="todos" class="on">Todos</button>
-          <button data-f="gasto">Gastos</button>
-          <button data-f="ingreso">Ingresos</button>
-        </div>
+      <div class="kpis">
+        <div class="kpi"><small>Gastos del mes</small><b class="num neg" id="k-gastos">$0</b></div>
+        <div class="kpi"><small>Ingresos</small><b class="num pos" id="k-ingresos">$0</b></div>
+        <div class="kpi"><small>Balance</small><b class="num" id="k-balance">$0</b></div>
       </div>
-      <ul id="list" class="list"></ul>
+      <div class="card">
+        <div class="ch"><h2>Movimientos</h2>
+          <div class="seg"><button data-f="todos" class="on">Todos</button><button data-f="gasto">Gastos</button><button data-f="ingreso">Ingresos</button></div>
+        </div>
+        <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="search" type="search" placeholder="Buscar movimiento" autocomplete="off"></label>
+        <ul class="list" id="list"></ul>
+      </div>
+    </section>
+
+    <!-- Tarjetas -->
+    <section class="view" id="v-tarjetas" hidden>
+      <div class="bigwallet" id="bigwallet"></div>
+      <div class="card" id="card-detail"></div>
+    </section>
+
+    <!-- Apartados -->
+    <section class="view" id="v-apartados" hidden>
+      <div class="card pots-head" id="pots-head"></div>
+      <div class="card">
+        <div class="ch"><h2>Apartados</h2><button class="pill press" id="add-pot">+ Agregar</button></div>
+        <ul class="list" id="pots"></ul>
+      </div>
+      <button class="card import press" data-import>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></svg>
+        <span><b>Importar estados de cuenta</b><small>Mercado Pago (Excel o CSV) y BBVA débito (PDF). Puedes elegir varios a la vez.</small></span>
+      </button>
+    </section>
+
+    <!-- Análisis -->
+    <section class="view" id="v-analisis" hidden>
+      <div class="card">
+        <div class="ch"><div><div class="ey">Tus hábitos de gasto</div><h2>Presupuesto</h2></div></div>
+        <div class="tiles" id="budget-tiles"></div>
+        <ul class="list cats" id="cats"></ul>
+      </div>
+      <div class="card">
+        <div class="ch"><h2>Gasto diario</h2><small class="muted" id="daily-max"></small></div>
+        <div class="chart" id="chart"></div>
+        <div class="chart-axis" id="chart-axis"></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div><div class="ey">Últimos 6 meses</div><h2>Ingresos / Gastos</h2></div><span class="legend"><i class="in"></i>Ingresos <i class="out"></i>Gastos</span></div>
+        <div class="six" id="six"></div>
+        <p class="foot" id="six-net"></p>
+      </div>
+      <div class="card">
+        <div class="ch"><h2>Regla 50/30/20</h2><span class="pill">3 meses</span></div>
+        <div id="rule"></div>
+      </div>
     </section>
   </main>
 
   <button class="fab" id="open-add" aria-label="Agregar movimiento">+</button>
+  <div class="toast" id="toast" role="status"></div>
+  <input type="file" id="file" accept=".xlsx,.csv,.pdf,application/pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple hidden>
 
-  <!-- Agregar -->
-  <dialog id="add-dlg">
-    <form method="dialog" id="add-form">
-      <h3>Nuevo movimiento</h3>
+  <!-- Movimiento -->
+  <dialog id="tx-dlg">
+    <form method="dialog" id="tx-form">
+      <h3 id="tx-title">Nuevo movimiento</h3>
       <div class="seg full">
         <label><input type="radio" name="tipo" value="gasto" checked><span>Gasto</span></label>
         <label><input type="radio" name="tipo" value="ingreso"><span>Ingreso</span></label>
+        <label><input type="radio" name="tipo" value="movimiento"><span>Entre cuentas</span></label>
       </div>
       <label class="field">Monto<input name="monto" inputmode="decimal" required placeholder="0.00"></label>
       <label class="field">Concepto<input name="concepto" placeholder="OXXO, renta, sueldo…"></label>
-      <label class="field">Categoría<select name="categoria"></select></label>
-      <label class="field">Tarjeta<select name="cuenta"></select></label>
+      <label class="field" id="cat-field">Categoría<select name="categoria"></select></label>
+      <label class="field">Cuenta<select name="cuenta"></select></label>
+      <label class="field" id="dest-field" hidden>Hacia<select name="destino"></select></label>
       <label class="field">Fecha<input name="fecha" type="date"></label>
+      <p class="hint" id="tx-raw"></p>
       <div class="row">
+        <button type="button" class="ghost danger" id="tx-del" hidden>Borrar</button>
+        <span class="sp"></span>
         <button value="cancel" formnovalidate class="ghost">Cancelar</button>
         <button value="ok" class="primary">Guardar</button>
       </div>
     </form>
   </dialog>
 
+  <!-- Tarjeta -->
+  <dialog id="card-dlg">
+    <form method="dialog" id="card-form">
+      <h3 id="card-title">Editar tarjeta</h3>
+      <p class="hint">Pon lo que ves hoy en la app de tu banco. A partir de ahí se suma o resta todo lo que entre.</p>
+      <label class="field"><span id="card-saldo-label">Saldo de hoy</span><input name="saldo" inputmode="decimal" required></label>
+      <label class="field">Últimos 4 dígitos<input name="last" inputmode="numeric" maxlength="4"></label>
+      <div class="row"><button value="cancel" formnovalidate class="ghost">Cancelar</button><button value="ok" class="primary">Guardar</button></div>
+    </form>
+  </dialog>
+
+  <!-- Apartado -->
+  <dialog id="pot-dlg">
+    <form method="dialog" id="pot-form">
+      <h3 id="pot-title">Apartado</h3>
+      <label class="field">Nombre<input name="nombre" required placeholder="Viaje, emergencias…"></label>
+      <label class="field">Saldo de hoy<input name="saldo" inputmode="decimal" required placeholder="0.00"></label>
+      <label class="field">Color<input name="color" type="color"></label>
+      <div class="row">
+        <button type="button" class="ghost danger" id="pot-del" hidden>Quitar</button>
+        <span class="sp"></span>
+        <button value="cancel" formnovalidate class="ghost">Cancelar</button>
+        <button value="ok" class="primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Importar -->
+  <dialog id="imp-dlg">
+    <form method="dialog">
+      <h3>Importar estados de cuenta</h3>
+      <div id="imp-body"></div>
+      <div class="row"><button value="cancel" class="ghost">Cancelar</button><button value="ok" class="primary">Importar</button></div>
+    </form>
+  </dialog>
+
   <!-- Ajustes -->
   <dialog id="settings-dlg">
     <form method="dialog" id="settings-form">
-      <h3>Conexión</h3>
-      <p class="hint">Pega la URL de tu Web App de Apps Script y el token. Se guardan solo en este dispositivo.</p>
+      <h3>Ajustes</h3>
+      <h4>Conexión</h4>
+      <p class="hint">URL de tu Web App de Apps Script y el token. Se guardan solo en este dispositivo.</p>
       <label class="field">URL del backend<input name="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
       <label class="field">Token<input name="token" autocomplete="off"></label>
+      <h4>Notificaciones</h4>
+      <p class="hint" id="push-status"></p>
+      <button type="button" class="ghost" id="push-btn">Activar notificaciones</button>
+      <h4>Estados de cuenta</h4>
+      <button type="button" class="ghost" data-import>Importar Mercado Pago / BBVA</button>
       <div class="row">
         <button value="demo" formnovalidate class="ghost">Usar demo</button>
+        <span class="sp"></span>
         <button value="ok" class="primary">Guardar</button>
       </div>
     </form>
