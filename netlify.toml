@@ -1,6 +1,0 @@
-# Netlify solo se usa para la función que envía notificaciones push.
-# El dashboard se publica en GitHub Pages.
-[build]
-  publish = "netlify/public"
-  functions = "netlify/functions"
-  command = ""

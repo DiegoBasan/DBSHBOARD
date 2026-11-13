@@ -2,11 +2,15 @@
   "name": "dbshboard",
   "private": true,
   "type": "module",
-  "description": "Función de Netlify para notificaciones push del dashboard",
-  "dependencies": {
-    "web-push": "3.6.7"
-  },
+  "description": "Dashboard de gastos: PWA + backend Apps Script",
+  "dependencies": {},
   "devDependencies": {
-    "@netlify/functions": "^2.8.2"
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@noble/ciphers": "2.4.0",
+    "esbuild": "0.28.2"
+  },
+  "scripts": {
+    "build:push": "esbuild tools/webpush-entry.js --bundle --format=iife --global-name=WebPush --target=es2019 --inject:tools/polyfill.js --legal-comments=inline --outfile=backend/WebPush.gs"
   }
 }

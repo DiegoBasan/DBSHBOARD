@@ -14,7 +14,9 @@
  * tipo: "gasto" | "ingreso" | "movimiento" (entre tus cuentas o apartados; no cuenta como gasto)
  *
  * Propiedades del script (Project Settings → Script Properties):
- *   TOKEN (obligatoria) · PUSH_URL + PUSH_SECRET (push vía Netlify) · NTFY_TOPIC + DASHBOARD_URL (opcional)
+ *   TOKEN (obligatoria) · VAPID_PUBLIC / VAPID_PRIVATE (se crean solas, para push) · DASHBOARD_URL, NTFY_TOPIC (opcionales)
+ *
+ * Archivos del proyecto de Apps Script: Code.gs (este) y WebPush.gs (cifrado para notificaciones push).
  */
 
 const SHEET_NAME = 'Movimientos';
@@ -43,7 +45,7 @@ const PALABRAS_INGRESO = ['recibiste', 'te envio', 'te enviaron', 'te transfirio
 
 function doGet(e) {
   if (!autorizado_(e.parameter.token)) return json_({ ok: false, error: 'token inválido' });
-  return json_({ ok: true, movimientos: leerTodo_(), config: config_() });
+  return json_({ ok: true, movimientos: leerTodo_(), config: config_(), vapid: vapid_().publicKey });
 }
 
 function doPost(e) {
@@ -300,7 +302,7 @@ function avisar_(f, mensaje) {
   const titulo = (f.tipo === 'ingreso' ? '+' : f.tipo === 'gasto' ? '−' : '') + dinero_(f.monto) + ' ' + f.concepto;
   const cuerpo = mensaje.split('\n')[1] || mensaje;
 
-  // 1) Push nativo a la app instalada (vía función de Netlify)
+  // 1) Push nativo a la app instalada
   enviarPush_(titulo, cuerpo);
 
   // 2) ntfy.sh (opcional)
@@ -329,23 +331,31 @@ function suscribir_(sub, quitar) {
   return { ok: true, dispositivos: subs.length };
 }
 
+/** Llaves VAPID de este backend (se generan la primera vez) */
+function vapid_() {
+  const props = PropertiesService.getScriptProperties();
+  let pub = props.getProperty('VAPID_PUBLIC'), priv = props.getProperty('VAPID_PRIVATE');
+  if (!pub || !priv) {
+    const k = WebPush.generateKeys();
+    props.setProperties({ VAPID_PUBLIC: k.publicKey, VAPID_PRIVATE: k.privateKey });
+    pub = k.publicKey; priv = k.privateKey;
+  }
+  return { publicKey: pub, privateKey: priv };
+}
+
+/** Manda la notificación directo al servicio push de cada dispositivo (Apple / Google / Mozilla) */
 function enviarPush_(titulo, cuerpo) {
   const props = PropertiesService.getScriptProperties();
-  const url = props.getProperty('PUSH_URL');
   const subs = subs_();
-  if (!url || !subs.length) return { ok: false, error: !url ? 'falta PUSH_URL' : 'ningún dispositivo suscrito' };
+  if (!subs.length) return { ok: false, error: 'ningún dispositivo suscrito' };
   try {
-    const r = UrlFetchApp.fetch(url, {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify({ secret: props.getProperty('PUSH_SECRET'), subs: subs, title: titulo, body: cuerpo, url: props.getProperty('DASHBOARD_URL') || '' }),
-      muteHttpExceptions: true,
-    });
-    const res = JSON.parse(r.getContentText() || '{}');
+    const url = props.getProperty('DASHBOARD_URL') || '';
+    const res = WebPush.send(subs, JSON.stringify({ title: titulo, body: cuerpo, url: url }), vapid_(), url || 'https://script.google.com');
     // Quita dispositivos que ya no existen (la app se borró, se revocó el permiso…)
-    if (res.expirados && res.expirados.length) {
-      PropertiesService.getScriptProperties().setProperty('SUBS', JSON.stringify(subs.filter(function (s) { return res.expirados.indexOf(s.endpoint) === -1; })));
+    if (res.expirados.length) {
+      props.setProperty('SUBS', JSON.stringify(subs.filter(function (s) { return res.expirados.indexOf(s.endpoint) === -1; })));
     }
+    res.ok = res.enviados > 0;
     return res;
   } catch (err) {
     return { ok: false, error: String(err) };
@@ -430,6 +440,7 @@ function configurar() {
     props.setProperty('TOKEN', token);
   }
   Logger.log('TOKEN: ' + token);
+  Logger.log('Push listo (llave pública): ' + vapid_().publicKey.slice(0, 16) + '…');
 }
 
 /** Manda un push de prueba a todos los dispositivos suscritos. */

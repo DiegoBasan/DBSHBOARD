@@ -1,91 +1,74 @@
-# DBSHBOARD · Estado de gastos
+# DBSHBOARD · Mis Finanzas
 
-Dashboard personal (PWA) que se instala en el iPhone como app y recibe tus movimientos de **Mercado Pago** automáticamente vía un **Atajo de iOS**.
+Dashboard personal de gastos (PWA) que se instala en el iPhone como app. Recibe tus movimientos de **Mercado Pago** automáticamente con un **Atajo de iOS**, importa estados de cuenta anteriores y te manda **notificaciones push** propias.
 
 ```
 Notificación Mercado Pago ─▶ Automatización de Atajos ─▶ POST ─▶ Apps Script ─▶ Google Sheets
-                                                                                    │
-                     Dashboard (GitHub Pages, en tu pantalla de inicio) ◀── GET ────┘
+                                                                     │   └─▶ push ─▶ la app en tu iPhone
+                     Dashboard (GitHub Pages, en tu pantalla de inicio) ◀── GET ┘
 ```
 
-| Pieza | Dónde vive | Costo |
-|---|---|---|
-| Frontend (`index.html`, `app.js`, `styles.css`) | GitHub Pages | Gratis |
-| Backend (`backend/Code.gs`) | Google Apps Script | Gratis |
-| Base de datos | Una hoja de Google Sheets | Gratis |
+Todo es gratis: GitHub Pages (frontend) + Google Apps Script/Sheets (backend). No usa Netlify ni Firebase.
 
-## 1. Backend (Google Sheets + Apps Script) — 5 min
+## Pestañas
 
-1. Crea una hoja nueva en [sheets.new](https://sheets.new) y llámala "DBSHBOARD".
-2. Menú **Extensiones → Apps Script**. Borra lo que haya y pega el contenido de `backend/Code.gs`. Guarda.
-3. En el selector de funciones elige **`configurar`** → **Ejecutar**. Acepta permisos. Abre **Registro de ejecución** y copia el `TOKEN: ...`.
-4. **Implementar → Nueva implementación → Tipo: Aplicación web**
-   - Ejecutar como: **Yo**
-   - Quién tiene acceso: **Cualquier persona** (el token es lo que protege tus datos)
-5. Copia la URL que termina en `/exec`.
+- **Inicio**: libre en Mercado Pago, apartados, tus 4 tarjetas con saldo/deuda, resumen del mes y movimientos con buscador. Toca un movimiento para corregirlo o borrarlo.
+- **Tarjetas**: Mercado Pago, BBVA Azul (crédito), Nu (crédito), BBVA Aqua (débito). **Editar** = pon el saldo que ves hoy en tu banco; a partir de ahí se suma/resta lo que entre.
+- **Apartados**: tus apartados de Mercado Pago con saldo editable; se crean solos al importar el estado de cuenta.
+- **Análisis**: presupuesto (hoy / 7 días / mes), categorías vs mes pasado, gasto diario, ingresos vs gastos 6 meses, regla 50/30/20.
 
-> Si cambias el código después: **Implementar → Administrar implementaciones → ✏️ → Versión: Nueva**. Así la URL no cambia.
+Tipos de movimiento: **gasto**, **ingreso** y **entre cuentas** (transferencias tuyas, pagos de tarjeta, apartados; no cuentan como gasto).
 
-Prueba rápida desde una terminal:
+## 1. Backend (Google Sheets + Apps Script)
 
-```bash
-curl -L -X POST "TU_URL_EXEC" -H "Content-Type: text/plain" -d '{"token":"TU_TOKEN","texto":"Pagaste $249.00 a OXXO"}'
-```
+1. En tu hoja: **Extensiones → Apps Script**.
+2. Pega `backend/Code.gs` en `Code.gs`. Luego **Archivos → + → Secuencia de comandos**, llámalo `WebPush` y pega `backend/WebPush.gs` (es la librería de cifrado para las notificaciones).
+3. Ejecuta **`configurar`** una vez (acepta todos los permisos). En el registro sale tu `TOKEN`.
+4. **Implementar → Nueva implementación → Aplicación web** · Ejecutar como: **Yo** · Acceso: **Cualquier persona**. Copia la URL `/exec`.
+   - Cuando actualices el código: **Administrar implementaciones → ✏️ → Versión: nueva**. La URL no cambia.
+5. (Opcional) Propiedad del script `DASHBOARD_URL` = URL de tu dashboard (al tocar la notificación se abre).
 
 ## 2. Frontend en GitHub Pages
 
-1. En GitHub: **Settings → Pages → Source: Deploy from a branch**, elige la rama y carpeta `/ (root)`.
-2. Abre la URL de Pages en **Safari** del iPhone → botón Compartir → **Agregar a inicio**.
-3. Abre la app → ⚙︎ → pega la **URL /exec** y el **token**. (Se guardan solo en tu teléfono, no en el repo.)
+1. **Settings → Pages → Deploy from a branch → `main` / root**.
+2. Abre la URL en **Safari** → Compartir → **Agregar a inicio**.
+3. En la app: ⚙︎ → URL `/exec` + token → Guardar.
+4. ⚙︎ → **Activar notificaciones** (solo funciona abriendo la app desde la pantalla de inicio).
 
-Sin configurar, la app muestra datos de demo.
+## 3. Atajo de iOS
 
-**Tarjetas:** se definen en `CARDS` (app.js) y `CUENTAS` (Code.gs). Toca una tarjeta para filtrar todo el dashboard por ella.
+**Atajos → Automatización → + → Notificación → App: Mercado Pago → Ejecutar inmediatamente**
 
-**Temas:** el botón ◐ alterna *sistema → claro → oscuro* (oscuro en escala de grises). En pantallas ≥ 960 px se activa el modo escritorio: KPIs en fila, gráfica de gasto diario, categorías y movimientos lado a lado.
+1. **Obtener contenido de URL** → tu URL `/exec` · Método **POST** · Cuerpo **JSON**:
+   | Clave | Valor |
+   |---|---|
+   | `token` | tu token |
+   | `texto` | la variable de la notificación |
+   | `app` | `Mercado Pago` |
 
-## 3. Atajo de iOS (automatización por notificación)
+Con las notificaciones push activadas ya no necesitas "Mostrar notificación" en el atajo: el aviso llega de la app.
 
-**Atajos → Automatización → + → Notificación**
-- App: **Mercado Pago**
-- Marca **Ejecutar inmediatamente** (y desactiva "Notificar al ejecutar" si quieres que sea silencioso).
+## 4. Importar estados de cuenta
 
-Acciones (burbujas), en orden:
+Apartados → **Importar estados de cuenta** (o ⚙︎). Acepta varios archivos a la vez:
+- **Mercado Pago**: Tu perfil → Estados de cuenta → descargar **Excel** (o CSV).
+- **BBVA débito**: el **PDF** mensual.
 
-1. **Texto** → escribe tu token (así no lo repites).
-2. **Obtener contenido de URL**
-   - URL: tu URL `/exec`
-   - Método: **POST**
-   - Cuerpo de la solicitud: **JSON**, con estos campos:
-     | Clave | Tipo | Valor |
-     |---|---|---|
-     | `token` | Texto | variable *Texto* del paso 1 |
-     | `titulo` | Texto | *Entrada del atajo* → toca la variable → **Título** |
-     | `cuerpo` | Texto | *Entrada del atajo* → toca la variable → **Cuerpo / Mensaje** |
-     | `app` | Texto | `Mercado Pago` |
-3. **Obtener valor del diccionario** → clave `mensaje`, del *Contenido de la URL*.
-4. **Mostrar notificación** → el *Valor del diccionario*. Te llega algo como:
-   `Gasto $249.00 · OXXO (Comida)` / `Noviembre: gastos $1,234.00 · balance $5,678.00`
+Se leen en tu teléfono (el PDF con pdf.js). Antes de guardar ves un resumen. No se duplica nada: ni lo que ya llegó por notificación, ni la misma transferencia BBVA → Mercado Pago que aparece en los dos estados de cuenta. El saldo final del estado de cuenta actualiza el saldo de la tarjeta.
 
-Para otros bancos crea otra automatización igual y agrega el campo `cuenta` con el id de la tarjeta (`bbva-credito`, `mp-debito`, `bbva-debito`, `nu-credito`). Mercado Pago se asigna solo a `mp-debito`.
+## API
 
-### Notificaciones push opcionales (ntfy)
-Para recibir el aviso también en la compu o abrir el dashboard al tocarlo:
-1. Instala la app gratis **ntfy** y suscríbete a un tema con nombre largo e impredecible (p. ej. `gastos-diego-8f3k2m9x`).
-2. En Apps Script → Project Settings → Script Properties agrega `NTFY_TOPIC` = ese nombre y `DASHBOARD_URL` = la URL de tu dashboard.
-3. Cada movimiento nuevo manda un push. Ojo: los temas de ntfy.sh son públicos para quien sepa el nombre.
+| Petición | Cuerpo / query |
+|---|---|
+| `GET` | `?token=…` → `{ movimientos, config, vapid }` |
+| `POST` notificación | `{token, texto \| titulo + cuerpo, app?, cuenta?}` |
+| `POST` alta / edición / borrado | `{action:"add" \| "update" \| "delete", …}` |
+| `POST` importar | `{action:"import", rows:[…]}` |
+| `POST` configuración | `{action:"config", config:{cards, pots}}` |
+| `POST` push | `{action:"subscribe", sub}` · `{action:"testpush"}` |
 
-> Si al tocar *Entrada del atajo* no ves Título/Cuerpo, manda la variable completa en un solo campo `texto`; el backend acepta `titulo`, `cuerpo` y/o `texto` y los une.
+## Desarrollo
 
-El backend se encarga de todo lo demás: extrae monto, detecta gasto vs ingreso, saca el comercio, asigna categoría y descarta duplicados (misma notificación en 5 min).
+`backend/WebPush.gs` se genera con `npm install && npm run build:push` desde `tools/webpush-entry.js` (cifrado Web Push RFC 8291 + firma VAPID con las librerías @noble, empaquetado para Apps Script).
 
-## Formato de la API
-
-| Petición | Cuerpo / query | Respuesta |
-|---|---|---|
-| `POST` notificación | `{token, titulo?, cuerpo?, texto?, app?}` | `{ok, movimiento}` |
-| `POST` alta manual | `{token, action:"add", tipo, monto, concepto, categoria, fecha?}` | `{ok, movimiento}` |
-| `POST` borrar | `{token, action:"delete", id}` | `{ok}` |
-| `GET` listar | `?token=…` | `{ok, movimientos:[…]}` |
-
-Categorías y palabras clave: edítalas en `CATEGORIAS` dentro de `backend/Code.gs`. Si una notificación se parsea mal, la columna `texto` de la hoja guarda el original para corregirla a mano.
+Las caras de tarjeta, los importadores y las secciones vienen de [Diapps-BS/finanzas](https://diegobasan.github.io/Diapps-BS/finanzas/).

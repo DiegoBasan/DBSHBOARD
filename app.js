@@ -1,8 +1,5 @@
 'use strict';
 
-// Llave pública VAPID para notificaciones push (la privada vive solo en Netlify).
-const VAPID_PUBLIC = 'BL9zWK7YcTkz6tIu6eOB-rNPRI2q_eCUPdk6GatLUr7zemTqFNMrul2h6t2sWeD2rywIAqA3PSQT1iXOl71D1pI';
-
 const CFG_KEY = 'dbsh.cfg', CACHE_KEY = 'dbsh.cache', CONF_KEY = 'dbsh.conf', TAB_KEY = 'dbsh.tab', PRIV_KEY = 'dbsh.priv';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -100,6 +97,7 @@ async function refresh() {
     if (!res.ok) throw new Error(res.error || 'Error');
     state.items = res.movimientos;
     state.conf = res.config || {};
+    state.vapid = res.vapid || '';
     save(CACHE_KEY, state.items);
     save(CONF_KEY, state.conf);
     banner(isDemo() ? 'Estás viendo datos de ejemplo. Toca ⚙︎ para conectar tu backend.' : '');
@@ -577,7 +575,8 @@ $('#push-btn').onclick = async () => {
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
       if ((await Notification.requestPermission()) !== 'granted') return pushStatus();
-      const key = Uint8Array.from(atob(VAPID_PUBLIC.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+      if (!state.vapid) throw new Error('actualiza el backend (Code.gs + WebPush.gs) y vuelve a intentar');
+      const key = Uint8Array.from(atob(state.vapid.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
       sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
     }
     const r = await api({ action: 'subscribe', sub: sub.toJSON() });
