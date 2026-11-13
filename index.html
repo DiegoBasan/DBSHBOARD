@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>DBSHBOARD</title>
   <meta name="theme-color" content="#f2f2f2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
@@ -41,6 +41,11 @@
   <p class="banner" id="banner" hidden></p>
 
   <main>
+    <section class="wallet-wrap" id="wallet-wrap">
+      <div class="wallet" id="wallet"></div>
+      <p class="wallet-label" id="wallet-label"></p>
+    </section>
+
     <section class="kpis">
       <article class="kpi">
         <span>Gastos</span>
@@ -98,14 +103,8 @@
       </div>
       <label class="field">Monto<input name="monto" inputmode="decimal" required placeholder="0.00"></label>
       <label class="field">Concepto<input name="concepto" placeholder="OXXO, renta, sueldo…"></label>
-      <label class="field">Categoría
-        <select name="categoria">
-          <option>Comida</option><option>Super</option><option>Transporte</option>
-          <option>Servicios</option><option>Suscripciones</option><option>Compras</option>
-          <option>Salud</option><option>Transferencias</option><option>Ingresos</option>
-          <option selected>Otros</option>
-        </select>
-      </label>
+      <label class="field">Categoría<select name="categoria"></select></label>
+      <label class="field">Tarjeta<select name="cuenta"></select></label>
       <label class="field">Fecha<input name="fecha" type="date"></label>
       <div class="row">
         <button value="cancel" formnovalidate class="ghost">Cancelar</button>

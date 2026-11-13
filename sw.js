@@ -1,6 +1,6 @@
 // Service worker mínimo: guarda la "cáscara" de la app para que abra rápido y sin red.
 // Los datos siempre se piden en vivo al backend (no se cachean aquí).
-const CACHE = 'dbsh-v2';
+const CACHE = 'dbsh-v3';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-180.png'];
 
 self.addEventListener('install', (e) => {

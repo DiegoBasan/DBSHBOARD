@@ -40,6 +40,8 @@ curl -L -X POST "TU_URL_EXEC" -H "Content-Type: text/plain" -d '{"token":"TU_TOK
 
 Sin configurar, la app muestra datos de demo.
 
+**Tarjetas:** se definen en `CARDS` (app.js) y `CUENTAS` (Code.gs). Toca una tarjeta para filtrar todo el dashboard por ella.
+
 **Temas:** el botón ◐ alterna *sistema → claro → oscuro* (oscuro en escala de grises). En pantallas ≥ 960 px se activa el modo escritorio: KPIs en fila, gráfica de gasto diario, categorías y movimientos lado a lado.
 
 ## 3. Atajo de iOS (automatización por notificación)
@@ -61,7 +63,17 @@ Acciones (burbujas), en orden:
      | `titulo` | Texto | *Entrada del atajo* → toca la variable → **Título** |
      | `cuerpo` | Texto | *Entrada del atajo* → toca la variable → **Cuerpo / Mensaje** |
      | `app` | Texto | `Mercado Pago` |
-3. *(Opcional)* **Obtener valor del diccionario** `movimiento.monto` del resultado → **Mostrar notificación** "Registrado $…" para confirmar.
+3. **Obtener valor del diccionario** → clave `mensaje`, del *Contenido de la URL*.
+4. **Mostrar notificación** → el *Valor del diccionario*. Te llega algo como:
+   `Gasto $249.00 · OXXO (Comida)` / `Noviembre: gastos $1,234.00 · balance $5,678.00`
+
+Para otros bancos crea otra automatización igual y agrega el campo `cuenta` con el id de la tarjeta (`bbva-credito`, `mp-debito`, `bbva-debito`, `nu-credito`). Mercado Pago se asigna solo a `mp-debito`.
+
+### Notificaciones push opcionales (ntfy)
+Para recibir el aviso también en la compu o abrir el dashboard al tocarlo:
+1. Instala la app gratis **ntfy** y suscríbete a un tema con nombre largo e impredecible (p. ej. `gastos-diego-8f3k2m9x`).
+2. En Apps Script → Project Settings → Script Properties agrega `NTFY_TOPIC` = ese nombre y `DASHBOARD_URL` = la URL de tu dashboard.
+3. Cada movimiento nuevo manda un push. Ojo: los temas de ntfy.sh son públicos para quien sepa el nombre.
 
 > Si al tocar *Entrada del atajo* no ves Título/Cuerpo, manda la variable completa en un solo campo `texto`; el backend acepta `titulo`, `cuerpo` y/o `texto` y los une.
 

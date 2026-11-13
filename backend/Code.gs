@@ -2,8 +2,8 @@
  * DBSHBOARD — backend en Google Apps Script + Google Sheets.
  *
  * Endpoints (una sola URL de "Web App"):
- *   POST  { token, texto | titulo + cuerpo, app? }          -> parsea notificación y guarda
- *   POST  { token, action:"add", tipo, monto, concepto, categoria, fecha? }  -> alta manual
+ *   POST  { token, texto | titulo + cuerpo, app?, cuenta? } -> parsea notificación y guarda
+ *   POST  { token, action:"add", tipo, monto, concepto, categoria, cuenta?, fecha? }  -> alta manual
  *   POST  { token, action:"delete", id }                   -> borra un movimiento
  *   GET   ?token=...                                        -> lista JSON de movimientos
  *
@@ -11,7 +11,18 @@
  */
 
 const SHEET_NAME = 'Movimientos';
-const HEADERS = ['id', 'fecha', 'tipo', 'monto', 'concepto', 'categoria', 'origen', 'texto'];
+const HEADERS = ['id', 'fecha', 'tipo', 'monto', 'concepto', 'categoria', 'origen', 'texto', 'cuenta'];
+
+// Tarjetas válidas (deben coincidir con CARDS en app.js).
+const CUENTAS = ['bbva-credito', 'mp-debito', 'bbva-debito', 'nu-credito'];
+
+function cuenta_(body) {
+  if (CUENTAS.indexOf(body.cuenta) !== -1) return body.cuenta;
+  const app = normalizar_(body.app || '');
+  if (app.indexOf('mercado') !== -1) return 'mp-debito';
+  if (app.indexOf('nu') === 0) return 'nu-credito';
+  return '';
+}
 
 // Palabras clave -> categoría (minúsculas, sin acentos). Edítalas a tu gusto.
 const CATEGORIAS = {
@@ -25,7 +36,7 @@ const CATEGORIAS = {
   'Transferencias': ['transferiste', 'transferencia', 'enviaste', 'spei'],
 };
 
-const PALABRAS_INGRESO = ['recibiste', 'te envio', 'te enviaron', 'te transfirio', 'ingreso', 'acredit', 'reembolso', 'devolucion', 'cobraste', 'depositaron', 'rendimiento'];
+const PALABRAS_INGRESO = ['recibiste', 'te envio', 'te enviaron', 'te transfirio', 'ingresaste', 'ingreso', 'ya esta disponible', 'acredit', 'reembolso', 'devolucion', 'cobraste', 'depositaron', 'depositaste', 'rendimiento'];
 
 // ---------- HTTP ----------
 
@@ -78,9 +89,51 @@ function agregarNotificacion_(body) {
     categoria: p.categoria,
     origen: body.app || 'Mercado Pago',
     texto: texto,
+    cuenta: cuenta_(body),
   };
   guardar_(fila);
-  return { ok: true, movimiento: serializar_(fila) };
+  const mensaje = resumen_(fila);
+  avisar_(fila, mensaje);
+  return { ok: true, mensaje: mensaje, movimiento: serializar_(fila) };
+}
+
+/** "Gasto $249.00 · OXXO (Comida)\nNoviembre: gastos $1,234.00 · balance $5,678.00" */
+function resumen_(f) {
+  const ahora = f.fecha;
+  let gastos = 0, ingresos = 0;
+  leerTodo_().forEach(function (m) {
+    const d = new Date(m.fecha);
+    if (d.getFullYear() !== ahora.getFullYear() || d.getMonth() !== ahora.getMonth()) return;
+    if (m.tipo === 'ingreso') ingresos += m.monto; else gastos += m.monto;
+  });
+  const mes = Utilities.formatDate(ahora, Session.getScriptTimeZone(), 'MMMM');
+  return (f.tipo === 'ingreso' ? 'Ingreso ' : 'Gasto ') + dinero_(f.monto) + ' · ' + f.concepto + ' (' + f.categoria + ')\n' +
+    mes.charAt(0).toUpperCase() + mes.slice(1) + ': gastos ' + dinero_(gastos) + ' · balance ' + dinero_(ingresos - gastos);
+}
+
+function dinero_(n) {
+  return '$' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
+ * Notificación push opcional vía ntfy.sh (app gratis "ntfy" en iPhone/Android/escritorio).
+ * Se activa poniendo en Propiedades del script: NTFY_TOPIC (y opcional DASHBOARD_URL).
+ */
+function avisar_(f, mensaje) {
+  const props = PropertiesService.getScriptProperties();
+  const topic = props.getProperty('NTFY_TOPIC');
+  if (!topic) return;
+  const headers = {
+    Title: (f.tipo === 'ingreso' ? '+' : '−') + dinero_(f.monto) + ' ' + f.concepto,
+    Tags: f.tipo === 'ingreso' ? 'chart_with_upwards_trend' : 'money_with_wings',
+  };
+  const url = props.getProperty('DASHBOARD_URL');
+  if (url) headers.Click = url;
+  try {
+    UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic), {
+      method: 'post', payload: mensaje.split('\n')[1] || mensaje, headers: headers, muteHttpExceptions: true,
+    });
+  } catch (err) { /* si ntfy falla, el movimiento ya quedó guardado */ }
 }
 
 function agregarManual_(body) {
@@ -95,6 +148,7 @@ function agregarManual_(body) {
     categoria: String(body.categoria || 'Otros').slice(0, 40),
     origen: 'Manual',
     texto: '',
+    cuenta: cuenta_(body),
   };
   guardar_(fila);
   return { ok: true, movimiento: serializar_(fila) };
@@ -133,8 +187,8 @@ function parsear(texto) {
   // Concepto: lo que va después de " a ", " en " o " de " tras el monto.
   let concepto = '';
   const tras = m ? texto.slice(texto.indexOf(m[0]) + m[0].length) : texto;
-  const c = tras.match(/\s(?:a|en|de|para)\s+(.+?)(?:\s+(?:fue|ha sido|con|el|desde)\b|[.·\n]|$)/i);
-  if (c) concepto = c[1].trim();
+  const c = tras.match(/\s(?:a|en|de|para|desde)\s+(.+?)(?:\s+(?:fue|ha sido|con|el|desde)\b|[.·\n]|$)/i);
+  if (c) concepto = c[1].trim().replace(/^(?:tu|su) cuenta (?:de|en)\s+/i, '');
   if (!concepto) concepto = texto.slice(0, 60);
 
   let categoria = tipo === 'ingreso' ? 'Ingresos' : 'Otros';
@@ -172,6 +226,9 @@ function hoja_() {
     hoja = ss.insertSheet(SHEET_NAME);
     hoja.appendRow(HEADERS);
     hoja.setFrozenRows(1);
+  } else if (hoja.getRange(1, HEADERS.length).getValue() !== HEADERS[HEADERS.length - 1]) {
+    // Hoja creada con una versión anterior: agrega los encabezados nuevos.
+    hoja.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
   }
   return hoja;
 }
@@ -222,5 +279,6 @@ function probarParser() {
     'Recibiste $1,500 de Juan Pérez',
     'Transferiste $500.50 a Ana López',
     'Tu pago de $199 en Netflix fue aprobado',
+    'Tu dinero ya está disponible · Ingresaste $ 5.00 desde tu cuenta de BBVA MEXICO.',
   ].forEach(function (t) { Logger.log(t + ' -> ' + JSON.stringify(parsear(t))); });
 }
